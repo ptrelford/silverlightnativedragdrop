@@ -30,9 +30,7 @@ namespace SilverlightNativeDragDrop
 
         private void button1_Click(object sender, RoutedEventArgs e)
         {
-            var nativeWindow = new NativeWindow();
-            App.Drag.AddTargetWindow(nativeWindow);
-            var window = nativeWindow.Window;
+            var window = new Window();
             window.Width = 200;
             window.Height = 150;
 

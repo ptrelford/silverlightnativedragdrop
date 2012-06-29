@@ -3,35 +3,26 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System;
 
 public class NativeDragDrop
 {
     private Window _dragWindow;
-    private List<NativeWindow> _targetWindows = new List<NativeWindow>();
+    private Dictionary<IntPtr, Window> _targetWindows;
     private bool _isDragging;
 
     public NativeDragDrop()
     {
-        var mainWindow = NativeWindow.FindMainWindow();
-        _targetWindows.Add(mainWindow);
-
-        var nativeWindow = new NativeWindow();
-        _dragWindow = nativeWindow.Window;
-        _dragWindow.WindowStyle = WindowStyle.None;
-        _dragWindow.Width = _dragWindow.Height = 0;
+        _dragWindow = new Window
+        {
+            WindowStyle = WindowStyle.None,
+            Width = 0,
+            Height = 0
+        };
         _dragWindow.Show();
         _dragWindow.Hide();
-        nativeWindow.SetTransparent();
-    }
-
-    public void AddTargetWindow(NativeWindow nativeWindow)
-    {
-        _targetWindows.Add(nativeWindow);
-    }
-
-    public void RemoveTargetWindow(NativeWindow nativeWindow)
-    {
-        _targetWindows.Add(nativeWindow);
+        var hwnd = NativeWindow.FindWindow(_dragWindow);
+        NativeWindow.SetTransparent(hwnd);
     }
 
     public void Move(UIElement source, MouseEventArgs e)
@@ -49,15 +40,15 @@ public class NativeDragDrop
         _dragWindow.Top = y - _dragWindow.Height / 2;
 
         var hwnd = NativeWindow.HwndFromPoint((int)x, (int)y);
-        var targetWindow = _targetWindows.FirstOrDefault(target => target.Hwnd == hwnd);
-        if (targetWindow != null)
+        Window targetWindow;
+        if( _targetWindows.TryGetValue(hwnd, out targetWindow) )
         {
-            var targetPos = GetWindowContentPosition(targetWindow.Window);
+            var targetPos = GetWindowContentPosition(targetWindow);
 
             var x1 = x - targetPos.X;
             var y1 = y - targetPos.Y;
 
-            var xs = VisualTreeHelper.FindElementsInHostCoordinates(new Point(x1, y1), targetWindow.Window);
+            var xs = VisualTreeHelper.FindElementsInHostCoordinates(new Point(x1, y1), targetWindow);
             System.Diagnostics.Debug.WriteLine("Local " + " " + x1 + " " + y1);
             if (xs.Count() > 0)
             {
@@ -66,7 +57,7 @@ public class NativeDragDrop
                     .Select(k => k.ToString());
                 System.Diagnostics.Debug.WriteLine("XS " + string.Join(",", ks));
             }
-            System.Diagnostics.Debug.WriteLine("Title " + targetWindow.Window.Title);
+            System.Diagnostics.Debug.WriteLine("Title " + targetWindow.Title);
         }
     }
 
@@ -75,6 +66,11 @@ public class NativeDragDrop
         _isDragging = true;
 
         source.CaptureMouse();
+
+        _targetWindows = 
+            Application.Current.Windows
+                .Cast<Window>()
+                .ToDictionary(NativeWindow.FindWindow);
 
         _dragWindow.Content = content;
         _dragWindow.Width = content.Width;
@@ -108,9 +104,9 @@ public class NativeDragDrop
 
     private static WindowStyle GetWindowStyle(Window window)
     {
-        return window == Application.Current.MainWindow       
+        return window == Application.Current.MainWindow
             ? Deployment.Current.OutOfBrowserSettings.WindowSettings.WindowStyle
-            : window.WindowStyle;       
+            : window.WindowStyle;
     }
 
     private static Point GetWindowContentOffset(WindowStyle style)
