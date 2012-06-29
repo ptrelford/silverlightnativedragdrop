@@ -4,7 +4,7 @@ using System.Windows;
 
 public static class NativeWindow
 {
-    public static IntPtr FindWindow(Window win)
+    public static IntPtr FindHwnd(Window win)
     {
         var hwnd = GetHwnd(win);
 

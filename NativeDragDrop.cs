@@ -21,8 +21,33 @@ public class NativeDragDrop
         };
         _dragWindow.Show();
         _dragWindow.Hide();
-        var hwnd = NativeWindow.FindWindow(_dragWindow);
+        var hwnd = NativeWindow.FindHwnd(_dragWindow);
         NativeWindow.SetTransparent(hwnd, (255 * 50) / 100);
+    }
+
+    public void Capture(UIElement source, MouseEventArgs e, FrameworkElement cue)
+    {
+        _isDragging = true;
+
+        source.CaptureMouse();
+
+        _targetWindows = 
+            Application.Current.Windows
+                .Cast<Window>()
+                .ToDictionary(NativeWindow.FindHwnd);
+
+        _dragWindow.Content = cue;
+        _dragWindow.Width = cue.Width;
+        _dragWindow.Height = cue.Height;
+
+        var window = Window.GetWindow(source);
+        Point windowPos = GetWindowContentPosition(window);
+
+        var mousePos = e.GetPosition(null);
+        _dragWindow.Left = windowPos.X + mousePos.X - _dragWindow.Width/2;
+        _dragWindow.Top = windowPos.Y + mousePos.Y - _dragWindow.Height/2;
+
+        _dragWindow.Show();
     }
 
     public void Move(UIElement source, MouseEventArgs e)
@@ -30,7 +55,7 @@ public class NativeDragDrop
         if (!_isDragging) return;
 
         var pos = e.GetPosition(null);
-        
+
         var window = Window.GetWindow(source);
         var windowPos = GetWindowContentPosition(window);
         var mousePos = e.GetPosition(null);
@@ -42,56 +67,11 @@ public class NativeDragDrop
         var xs = FindElements(x, y);
         if (xs.Count() > 0)
         {
-            var ks = 
+            var ks =
                 xs
                 .Select(k => k.ToString());
             System.Diagnostics.Debug.WriteLine("XS " + string.Join(",", ks));
         }
-    }
-
-    private IEnumerable<UIElement> FindElements(double x, double y)
-    {
-        var hwnd = NativeWindow.HwndFromPoint((int)x, (int)y);
-        Window targetWindow;
-        if (_targetWindows.TryGetValue(hwnd, out targetWindow))
-        {
-            var targetPos = GetWindowContentPosition(targetWindow);
-
-            var x1 = x - targetPos.X;
-            var y1 = y - targetPos.Y;
-
-            var xs = VisualTreeHelper.FindElementsInHostCoordinates(new Point(x1, y1), targetWindow);
-            System.Diagnostics.Debug.WriteLine("Local " + " " + x1 + " " + y1);
-            System.Diagnostics.Debug.WriteLine("Title " + targetWindow.Title);
-
-            return xs;
-        }
-        else return new UIElement[] { };
-    }
-
-    public void Capture(UIElement source, MouseEventArgs e, FrameworkElement content)
-    {
-        _isDragging = true;
-
-        source.CaptureMouse();
-
-        _targetWindows = 
-            Application.Current.Windows
-                .Cast<Window>()
-                .ToDictionary(NativeWindow.FindWindow);
-
-        _dragWindow.Content = content;
-        _dragWindow.Width = content.Width;
-        _dragWindow.Height = content.Height;
-
-        var window = Window.GetWindow(source);
-        Point windowPos = GetWindowContentPosition(window);
-
-        var mousePos = e.GetPosition(null);
-        _dragWindow.Left = windowPos.X + mousePos.X - _dragWindow.Width/2;
-        _dragWindow.Top = windowPos.Y + mousePos.Y - _dragWindow.Height/2;
-
-        _dragWindow.Show();
     }
 
     public void Release(UIElement source)
@@ -122,5 +102,25 @@ public class NativeDragDrop
         return style == WindowStyle.SingleBorderWindow
             ? new Point(10, 32)
             : new Point(0, 0);
+    }
+
+    private IEnumerable<UIElement> FindElements(double x, double y)
+    {
+        var hwnd = NativeWindow.HwndFromPoint((int)x, (int)y);
+        Window targetWindow;
+        if (_targetWindows.TryGetValue(hwnd, out targetWindow))
+        {
+            var targetPos = GetWindowContentPosition(targetWindow);
+
+            var x1 = x - targetPos.X;
+            var y1 = y - targetPos.Y;
+
+            var xs = VisualTreeHelper.FindElementsInHostCoordinates(new Point(x1, y1), targetWindow);
+            System.Diagnostics.Debug.WriteLine("Local " + " " + x1 + " " + y1);
+            System.Diagnostics.Debug.WriteLine("Title " + targetWindow.Title);
+
+            return xs;
+        }
+        else return new UIElement[] { };
     }
 }
