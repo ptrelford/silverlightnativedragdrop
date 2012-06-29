@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows;
 
 public static class NativeWindow
@@ -11,12 +10,12 @@ public static class NativeWindow
 
         if( win == Application.Current.MainWindow)
         {
-        var child = hwnd;
-        while (child != IntPtr.Zero)
-        {
-            hwnd = child;
-            child = FindWindowEx(hwnd, IntPtr.Zero, null, null);
-        }
+            var child = hwnd;
+            while (child != IntPtr.Zero)
+            {
+                hwnd = child;
+                child = FindWindowEx(hwnd, IntPtr.Zero, null, null);
+            }
         }
         return hwnd;
     }
@@ -36,11 +35,11 @@ public static class NativeWindow
         return WindowFromPoint(new POINT { X = x, Y = y });
     }
 
-    public static void SetTransparent(IntPtr hwnd)
+    public static void SetTransparent(IntPtr hwnd, byte alpha)
     {
         // Note: the window must be in the hidden state to take effect
         SetWindowLong(hwnd, GWL_EXSTYLE, (int)(WS_EX_LAYERED + WS_EX_TRANSPARENT + WS_EX_NOACTIVATE));
-        SetLayeredWindowAttributes(hwnd, 0, (255 * 50) / 100, LWA_ALPHA);
+        SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
     }
 
     #region Win32 API
