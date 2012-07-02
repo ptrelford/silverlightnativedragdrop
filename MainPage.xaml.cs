@@ -25,7 +25,7 @@ namespace SilverlightNativeDragDrop
         {
             source.MouseLeftButtonDown += (s, e) => App.Drag.Capture(source, e, dragElement);
             source.MouseMove += (s, e) => App.Drag.Move(source, e);
-            source.MouseLeftButtonUp += (s, e) => App.Drag.Release(source);
+            source.MouseLeftButtonUp += (s, e) => App.Drag.Release(source, e, "Drop");
         }
 
         private void button1_Click(object sender, RoutedEventArgs e)
@@ -35,8 +35,10 @@ namespace SilverlightNativeDragDrop
             window.Height = 150;
 
             var grid = new Grid();
-            var block = new TextBlock { Text = "Block", IsHitTestVisible = true };
-            grid.Children.Add(block);
+
+            var box = new ListBoxDropTarget();
+            grid.Children.Add(box);
+
             window.Content = new UserControl { Content = grid };
             
             var dragElement = new Canvas { Width = 32, Height = 32 };

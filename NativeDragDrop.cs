@@ -54,32 +54,44 @@ public class NativeDragDrop
     {
         if (!_isDragging) return;
 
-        var pos = e.GetPosition(null);
-
-        var window = Window.GetWindow(source);
-        var windowPos = GetWindowContentPosition(window);
         var mousePos = e.GetPosition(null);
-        var x = windowPos.X + mousePos.X;
-        var y = windowPos.Y + mousePos.Y;
+
+        double x;
+        double y;
+        GetXY(source, mousePos, out x, out y);
         _dragWindow.Left = x - _dragWindow.Width / 2;
         _dragWindow.Top = y - _dragWindow.Height / 2;
-
-        var xs = FindElements(x, y);
-        if (xs.Count() > 0)
-        {
-            var ks =
-                xs
-                .Select(k => k.ToString());
-            System.Diagnostics.Debug.WriteLine("XS " + string.Join(",", ks));
-        }
     }
 
-    public void Release(UIElement source)
+    public void Release(UIElement source, MouseEventArgs e, object data)
     {
+        var mousePos = e.GetPosition(null);
+        double x, y;
+        GetXY(source, mousePos, out x, out y);
+
+        var elements = FindElements(x, y);
+        foreach(var element in elements)
+        {
+            if (element is IAcceptDrop)
+            {
+                var target = (IAcceptDrop ) element;
+                bool handled = target.OnDrop(data);
+                if (handled) break;
+            }
+        }
+        
         source.ReleaseMouseCapture();
         _dragWindow.Hide();
         _dragWindow.Content = null;
         _isDragging = false;
+    }
+
+    private static void GetXY(UIElement source, Point mousePos, out double x, out double y)
+    {
+        var window = Window.GetWindow(source);
+        var windowPos = GetWindowContentPosition(window);
+        x = windowPos.X + mousePos.X;
+        y = windowPos.Y + mousePos.Y;
     }
 
     private static Point GetWindowContentPosition(Window window)
@@ -115,11 +127,7 @@ public class NativeDragDrop
             var x1 = x - targetPos.X;
             var y1 = y - targetPos.Y;
 
-            var xs = VisualTreeHelper.FindElementsInHostCoordinates(new Point(x1, y1), targetWindow);
-            System.Diagnostics.Debug.WriteLine("Local " + " " + x1 + " " + y1);
-            System.Diagnostics.Debug.WriteLine("Title " + targetWindow.Title);
-
-            return xs;
+            return VisualTreeHelper.FindElementsInHostCoordinates(new Point(x1, y1), targetWindow);
         }
         else return new UIElement[] { };
     }
